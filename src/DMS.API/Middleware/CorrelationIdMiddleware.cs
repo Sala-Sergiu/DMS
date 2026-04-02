@@ -1,4 +1,6 @@
-﻿namespace DMS.API.Middleware;
+﻿using Serilog.Context;
+
+namespace DMS.API.Middleware;
 
 public class CorrelationIdMiddleware
 {
@@ -18,6 +20,9 @@ public class CorrelationIdMiddleware
         context.Items["CorrelationId"] = correlationId;
         context.Response.Headers[CorrelationIdHeader] = correlationId;
 
-        await _next(context);
+        using (LogContext.PushProperty("CorrelationId", correlationId))
+        {
+            await _next(context);
+        }
     }
 }
