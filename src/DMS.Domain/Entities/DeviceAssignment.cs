@@ -35,6 +35,8 @@ public class DeviceAssignment
         User = user;
         AssignedAtUtc = DateTime.UtcNow;
         Notes = notes;
+
+        device.AddAssignment(this);
     }
 
     /// <summary>
