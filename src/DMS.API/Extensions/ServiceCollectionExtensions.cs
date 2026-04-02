@@ -1,4 +1,5 @@
 ﻿using DMS.API.Constants;
+using DMS.BLL.AI;
 using DMS.BLL.Services;
 using DMS.DAL.Persistence;
 using DMS.DAL.Repositories;
@@ -34,6 +35,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IDeviceDescriptionService, DeviceDescriptionService>();
+        services.AddScoped<IDeviceDescriptionGenerator, OpenAiDeviceDescriptionGenerator>();
+        services.AddHttpClient<IDeviceDescriptionGenerator, OpenAiDeviceDescriptionGenerator>();
 
         return services;
     }

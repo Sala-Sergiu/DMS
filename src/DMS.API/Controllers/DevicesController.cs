@@ -1,4 +1,5 @@
 ﻿using DMS.API.Constants;
+using DMS.BLL.DTOs.AI;
 using DMS.BLL.DTOs.Assignment;
 using DMS.BLL.DTOs.Device;
 using DMS.BLL.Services;
@@ -13,10 +14,12 @@ namespace DMS.API.Controllers;
 public class DevicesController : ControllerBase
 {
     private readonly IDeviceService _deviceService;
+    private readonly IDeviceDescriptionService _deviceDescriptionService;
 
-    public DevicesController(IDeviceService deviceService)
+    public DevicesController(IDeviceService deviceService, IDeviceDescriptionService deviceDescriptionService)
     {
         _deviceService = deviceService;
+        _deviceDescriptionService = deviceDescriptionService;
     }
 
     [HttpGet]
@@ -92,6 +95,16 @@ public class DevicesController : ControllerBase
     public async Task<IActionResult> Return(Guid id, [FromBody] ReturnDeviceRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _deviceService.ReturnAsync(id, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("generate-description")]
+    [Authorize]
+    public async Task<IActionResult> GenerateDescription(
+        [FromBody] GenerateDescriptionRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _deviceDescriptionService.GenerateAsync(request, cancellationToken);
         return Ok(result);
     }
 }
