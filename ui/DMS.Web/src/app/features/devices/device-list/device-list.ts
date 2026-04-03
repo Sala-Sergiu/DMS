@@ -9,15 +9,17 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { DeviceService } from '../../../core/services/device.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Device } from '../../../core/models/device.model';
 import { DeviceType } from '../../../core/models/device-type.enum';
 import { DeviceStatus } from '../../../core/models/device-status.enum';
+import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-device-list',
@@ -33,9 +35,10 @@ import { DeviceStatus } from '../../../core/models/device-status.enum';
     MatButtonModule,
     MatIconModule,
     MatSelectModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatDialogModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="page-header">
@@ -121,7 +124,7 @@ import { DeviceStatus } from '../../../core/models/device-status.enum';
 
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
-            <td mat-cell *matCellDef="let d">
+            <td mat-cell *matCellDef="let d" (click)="$event.stopPropagation()">
               <a mat-icon-button [routerLink]="['/devices', d.id]" matTooltip="View details">
                 <mat-icon>visibility</mat-icon>
               </a>
@@ -129,6 +132,11 @@ import { DeviceStatus } from '../../../core/models/device-status.enum';
                 <a mat-icon-button [routerLink]="['/devices', d.id, 'edit']" matTooltip="Edit">
                   <mat-icon>edit</mat-icon>
                 </a>
+              }
+              @if (isAdmin()) {
+                <button mat-icon-button color="warn" (click)="confirmDelete(d)" matTooltip="Delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
               }
             </td>
           </ng-container>
@@ -166,11 +174,7 @@ import { DeviceStatus } from '../../../core/models/device-status.enum';
     table { width: 100%; }
     .table-row { cursor: pointer; }
     .table-row:hover { background: var(--mat-sys-surface-variant); }
-    .spinner-container {
-      display: flex;
-      justify-content: center;
-      padding: 48px;
-    }
+    .spinner-container { display: flex; justify-content: center; padding: 48px; }
     .status-badge {
       padding: 4px 10px;
       border-radius: 12px;
@@ -186,7 +190,8 @@ import { DeviceStatus } from '../../../core/models/device-status.enum';
 export class DeviceList implements OnInit {
   private deviceService = inject(DeviceService);
   private authService = inject(AuthService);
-  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
 
   devices = signal<Device[]>([]);
   totalCount = signal(0);
@@ -263,6 +268,35 @@ export class DeviceList implements OnInit {
     });
   }
 
+  confirmDelete(device: Device): void {
+    const dialogRef = this.dialog.open(ConfirmDialog, {
+      width: '380px',
+      data: {
+        title: 'Delete Device',
+        message: `Are you sure you want to delete "${device.name}"? This action cannot be undone.`
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.deleteDevice(device.id);
+      }
+    });
+  }
+
+  private deleteDevice(id: string): void {
+    this.deviceService.delete(id).subscribe({
+      next: () => {
+        this.snackBar.open('Device deleted successfully.', 'Close', { duration: 3000 });
+        this.loadDevices();
+      },
+      error: (err) => {
+        const message = err.error?.message ?? 'Failed to delete device.';
+        this.snackBar.open(message, 'Close', { duration: 4000 });
+      }
+    });
+  }
+
   onSort(sort: Sort): void {
     this.sortBy = sort.active;
     this.sortDescending = sort.direction === 'desc';
@@ -278,6 +312,10 @@ export class DeviceList implements OnInit {
   isManagerOrAdmin(): boolean {
     const role = this.authService.getRole();
     return role === 'Manager' || role === 'Admin';
+  }
+
+  isAdmin(): boolean {
+    return this.authService.getRole() === 'Admin';
   }
 
   getTypeLabel(type: DeviceType): string {
