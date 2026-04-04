@@ -34,4 +34,13 @@ public class AuthController : ControllerBase
         var result = await _authService.LoginAsync(request, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("dev/hash")]
+#if DEBUG
+    public IActionResult GetHash([FromQuery] string password)
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword(password, 11);
+        return Ok(new { hash });
+    }
+#endif
 }

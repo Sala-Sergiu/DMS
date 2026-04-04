@@ -74,3 +74,30 @@ END
 ELSE
     PRINT 'Table DeviceAssignments already exists — skipped.';
 GO
+
+-- -------------------------------------------------------------
+-- Invites
+-- -------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Invites' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    CREATE TABLE dbo.Invites (
+        Id              UNIQUEIDENTIFIER    NOT NULL DEFAULT NEWID(),
+        Email           NVARCHAR(256)       NOT NULL,
+        Token           NVARCHAR(512)       NOT NULL,   -- secure hashed token
+        Role            INT                 NOT NULL,   -- 1=Employee, 2=Manager, 3=Admin
+        IsUsed          BIT                 NOT NULL DEFAULT 0,
+        ExpiresAtUtc    DATETIME2           NOT NULL,
+        CreatedByUserId UNIQUEIDENTIFIER    NOT NULL,
+        CreatedAtUtc    DATETIME2           NOT NULL DEFAULT GETUTCDATE(),
+
+        CONSTRAINT PK_Invites PRIMARY KEY (Id),
+        CONSTRAINT UQ_Invites_Token UNIQUE (Token),
+        CONSTRAINT FK_Invites_CreatedByUser FOREIGN KEY (CreatedByUserId)
+            REFERENCES dbo.Users(Id) ON DELETE NO ACTION
+    );
+
+    PRINT 'Table Invites created.';
+END
+ELSE
+    PRINT 'Table Invites already exists — skipped.';
+GO

@@ -17,7 +17,7 @@ BEGIN
         'a1000000-0000-0000-0000-000000000001',
         'Sergiu Sala',
         'admin@dms.com',
-        '$2a$11$KoMCRVBmkFp2F/7KS0r4O.pV1yUKVVsOk5CmM4fQwHHqvKj6Hm7oS',
+        '$2a$11$8K1p/a0dUrpWDEoFGx7tEOFiMQX3X4YoFbIEd1GkFxFD7GkG9KGXi',
         3,  -- Admin
         'Bucharest',
         1,

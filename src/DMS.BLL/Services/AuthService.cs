@@ -33,13 +33,9 @@ public class AuthService : IAuthService
         if (await _uow.Users.ExistsByEmailAsync(request.Email, cancellationToken: cancellationToken))
             throw new ConflictException($"Email '{request.Email}' is already registered.");
 
-        // First user ever registered becomes Admin automatically
-        var isFirstUser = !await _uow.Users.AnyAsync(_ => true, cancellationToken);
-        var role = isFirstUser ? UserRole.Admin : UserRole.Employee;
-
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        var user = new User(request.FullName, request.Email, passwordHash, role, request.Location);
+        var user = new User(request.FullName, request.Email, passwordHash, UserRole.Employee, request.Location);
 
         await _uow.Users.AddAsync(user, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
@@ -66,9 +62,7 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new UnauthorizedException("Invalid email or password.");
 
-        var token = GenerateJwtToken(user);
-
-        return token;
+        return GenerateJwtToken(user);
     }
 
     private LoginResponseDto GenerateJwtToken(User user)

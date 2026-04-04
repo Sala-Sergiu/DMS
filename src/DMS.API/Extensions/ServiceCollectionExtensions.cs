@@ -25,6 +25,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IDeviceRepository, DeviceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IInviteRepository, InviteRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IInviteService, InviteService>();
         services.AddScoped<IDeviceDescriptionService, DeviceDescriptionService>();
         services.AddScoped<IDeviceDescriptionGenerator, OpenAiDeviceDescriptionGenerator>();
         services.AddHttpClient<IDeviceDescriptionGenerator, OpenAiDeviceDescriptionGenerator>();
