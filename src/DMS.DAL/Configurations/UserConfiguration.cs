@@ -34,9 +34,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Location)
             .HasMaxLength(200);
 
-        builder.Property(u => u.IsActive)
-            .IsRequired();
-
         builder.Property(u => u.CreatedAtUtc)
             .IsRequired();
 

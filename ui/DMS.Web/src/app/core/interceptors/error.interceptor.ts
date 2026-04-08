@@ -17,9 +17,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         case 403:
           router.navigate(['/forbidden']);
           break;
-        case 404:
-          router.navigate(['/not-found']);
-          break;
       }
       return throwError(() => error);
     })

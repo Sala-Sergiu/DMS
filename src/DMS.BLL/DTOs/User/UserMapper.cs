@@ -1,8 +1,6 @@
 ﻿using DMS.BLL.DTOs.User;
 using DMS.Domain.Entities;
 
-namespace DMS.BLL.Mappers;
-
 internal static class UserMapper
 {
     internal static UserResponseDto ToResponseDto(User user) => new()
@@ -10,9 +8,19 @@ internal static class UserMapper
         Id = user.Id,
         FullName = user.FullName,
         Email = user.Email,
-        Role = user.Role,
         Location = user.Location,
-        IsActive = user.IsActive,
-        CreatedAtUtc = user.CreatedAtUtc
+        CreatedAtUtc = user.CreatedAtUtc,
+        ActiveAssignments = user.Assignments
+            .Where(a => a.IsActive)
+            .Select(a => new UserAssignedDeviceDto
+            {
+                AssignmentId = a.Id,
+                DeviceId = a.DeviceId,
+                DeviceName = a.Device?.Name ?? string.Empty,
+                Brand = a.Device?.Brand ?? string.Empty,
+                Model = a.Device?.Model ?? string.Empty,
+                AssignedAtUtc = a.AssignedAtUtc
+            })
+            .ToList()
     };
 }

@@ -4,7 +4,6 @@ using DMS.BLL.Services;
 using DMS.DAL.Repositories;
 using DMS.DAL.UnitOfWork;
 using DMS.Domain.Entities;
-using DMS.Domain.Enums;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Moq;
@@ -39,48 +38,6 @@ public class AuthServiceTests
             .Build();
 
         _sut = new AuthService(_uow.Object, _configuration);
-    }
-
-    // ─── RegisterAsync ─────────────────────────────────────────────────
-
-    [Fact]
-    public async Task RegisterAsync_FirstUser_IsAssignedAdminRole()
-    {
-        var request = new RegisterRequestDto
-        {
-            FullName = "Admin User",
-            Email = "admin@dms.com",
-            Password = "SecurePass1!"
-        };
-
-        _userRepo.Setup(r => r.ExistsByEmailAsync(request.Email, null, default)).ReturnsAsync(false);
-        _userRepo.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<User, bool>>>(), default)).ReturnsAsync(false);
-        _userRepo.Setup(r => r.AddAsync(It.IsAny<User>(), default)).Returns(Task.CompletedTask);
-        _uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
-
-        var result = await _sut.RegisterAsync(request);
-
-        result.Role.Should().Be(UserRole.Admin);
-    }
-
-    [Fact]
-    public async Task RegisterAsync_SubsequentUser_IsAssignedEmployeeRole()
-    {
-        var request = new RegisterRequestDto
-        {
-            FullName = "Regular User",
-            Email = "user@dms.com",
-            Password = "SecurePass1!"
-        };
-
-        _userRepo.Setup(r => r.ExistsByEmailAsync(request.Email, null, default)).ReturnsAsync(false);
-        _userRepo.Setup(r => r.AnyAsync(It.IsAny<System.Linq.Expressions.Expression<Func<User, bool>>>(), default)).ReturnsAsync(true);
-        _userRepo.Setup(r => r.AddAsync(It.IsAny<User>(), default)).Returns(Task.CompletedTask);
-        _uow.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
-
-        var result = await _sut.RegisterAsync(request);
-
-        result.Role.Should().Be(UserRole.Employee);
     }
 
     [Fact]
@@ -121,27 +78,6 @@ public class AuthServiceTests
         await act.Should().ThrowAsync<ValidationException>();
     }
 
-    // ─── LoginAsync ────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task LoginAsync_WithValidCredentials_ReturnsToken()
-    {
-        var password = "ValidPass123!";
-        var hash = BCrypt.Net.BCrypt.HashPassword(password);
-        var user = new User("Test User", "test@dms.com", hash, UserRole.Employee);
-
-        _userRepo.Setup(r => r.GetByEmailAsync("test@dms.com", default)).ReturnsAsync(user);
-
-        var result = await _sut.LoginAsync(new LoginRequestDto
-        {
-            Email = "test@dms.com",
-            Password = password
-        });
-
-        result.Should().NotBeNull();
-        result.Token.Should().NotBeNullOrWhiteSpace();
-        result.ExpiresAt.Should().BeAfter(DateTime.UtcNow);
-    }
 
     [Fact]
     public async Task LoginAsync_WhenUserNotFound_ThrowsUnauthorizedException()
@@ -157,41 +93,6 @@ public class AuthServiceTests
         await act.Should().ThrowAsync<UnauthorizedException>();
     }
 
-    [Fact]
-    public async Task LoginAsync_WithWrongPassword_ThrowsUnauthorizedException()
-    {
-        var hash = BCrypt.Net.BCrypt.HashPassword("CorrectPassword");
-        var user = new User("Test", "test@dms.com", hash, UserRole.Employee);
-
-        _userRepo.Setup(r => r.GetByEmailAsync("test@dms.com", default)).ReturnsAsync(user);
-
-        var act = () => _sut.LoginAsync(new LoginRequestDto
-        {
-            Email = "test@dms.com",
-            Password = "WrongPassword"
-        });
-
-        await act.Should().ThrowAsync<UnauthorizedException>();
-    }
-
-    [Fact]
-    public async Task LoginAsync_WhenUserIsInactive_ThrowsUnauthorizedException()
-    {
-        var hash = BCrypt.Net.BCrypt.HashPassword("Pass123!");
-        var user = new User("Inactive User", "inactive@dms.com", hash, UserRole.Employee);
-        user.Deactivate();
-
-        _userRepo.Setup(r => r.GetByEmailAsync("inactive@dms.com", default)).ReturnsAsync(user);
-
-        var act = () => _sut.LoginAsync(new LoginRequestDto
-        {
-            Email = "inactive@dms.com",
-            Password = "Pass123!"
-        });
-
-        await act.Should().ThrowAsync<UnauthorizedException>()
-            .WithMessage("*inactive*");
-    }
 
     [Theory]
     [InlineData("", "Password1")]

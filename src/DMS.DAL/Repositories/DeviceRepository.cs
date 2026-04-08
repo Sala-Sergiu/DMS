@@ -41,6 +41,37 @@ public class DeviceRepository : Repository<Device>, IDeviceRepository
             .Take(parameters.PageSize)
             .ToListAsync(cancellationToken);
 
+        // Dacă există un search term, aplicăm ranking în memorie după relevanță
+        if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+        {
+            var tokens = parameters.SearchTerm
+                .ToLower()
+                .Split([' ', '-', '_', ',', '.'], StringSplitOptions.RemoveEmptyEntries);
+
+            items = [.. items.OrderByDescending(d => ScoreDevice(d, tokens))];
+        }
+
         return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Scoring determinist bazat pe câmp și număr de tokeni găsiți.
+    /// Name match = 10 pts, Brand match = 5 pts, Model match = 3 pts per token.
+    /// </summary>
+    private static int ScoreDevice(Device device, string[] tokens)
+    {
+        var score = 0;
+        var nameLower = device.Name.ToLower();
+        var brandLower = device.Brand.ToLower();
+        var modelLower = device.Model.ToLower();
+
+        foreach (var token in tokens)
+        {
+            if (nameLower.Contains(token)) score += 10;
+            if (brandLower.Contains(token)) score += 5;
+            if (modelLower.Contains(token)) score += 3;
+        }
+
+        return score;
     }
 }

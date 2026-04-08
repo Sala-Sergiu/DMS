@@ -1,5 +1,4 @@
-﻿using DMS.API.Constants;
-using DMS.BLL.DTOs.User;
+﻿using DMS.BLL.DTOs.User;
 using DMS.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,42 +29,11 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.ManagerOrAdmin)]
     [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _userService.GetByIdAsync(id, cancellationToken);
-        return Ok(result);
-    }
-
-    [HttpPatch("{id:guid}/role")]
-    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ChangeRole(Guid id, [FromBody] ChangeUserRoleRequestDto request, CancellationToken cancellationToken)
-    {
-        var result = await _userService.ChangeRoleAsync(id, request, cancellationToken);
-        return Ok(result);
-    }
-
-    [HttpPatch("{id:guid}/deactivate")]
-    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
-    {
-        var result = await _userService.DeactivateAsync(id, cancellationToken);
-        return Ok(result);
-    }
-
-    [HttpPatch("{id:guid}/activate")]
-    [Authorize(Policy = AuthorizationPolicies.AdminOnly)]
-    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken)
-    {
-        var result = await _userService.ActivateAsync(id, cancellationToken);
         return Ok(result);
     }
 }

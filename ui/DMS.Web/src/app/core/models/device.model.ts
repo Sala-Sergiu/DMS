@@ -1,6 +1,9 @@
 import { DeviceType } from './device-type.enum';
 import { DeviceStatus } from './device-status.enum';
 
+export { DeviceType } from './device-type.enum';
+export { DeviceStatus } from './device-status.enum';
+
 export interface ActiveAssignment {
   assignmentId: string;
   userId: string;
@@ -17,10 +20,22 @@ export interface Device {
   model: string;
   type: DeviceType;
   status: DeviceStatus;
-  purchasedAtUtc: string | null;
+  operatingSystem?: string;
+  osVersion?: string;
+  processor?: string;
+  ramGb?: number;
+  description?: string;
+  purchasedAtUtc?: string;
   createdAtUtc: string;
   updatedAtUtc: string;
-  activeAssignment: ActiveAssignment | null;
+  activeAssignment?: ActiveAssignment;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
 }
 
 export interface CreateDeviceRequest {
@@ -30,7 +45,12 @@ export interface CreateDeviceRequest {
   brand: string;
   model: string;
   type: DeviceType;
-  purchasedAtUtc: string | null;
+  operatingSystem?: string;
+  osVersion?: string;
+  processor?: string;
+  ramGb?: number;
+  description?: string;
+  purchasedAtUtc?: string;
 }
 
 export interface UpdateDeviceRequest {
@@ -38,21 +58,9 @@ export interface UpdateDeviceRequest {
   brand: string;
   model: string;
   type: DeviceType;
-}
-
-export interface DeviceListRequest {
-  searchTerm?: string;
-  type?: DeviceType;
-  status?: DeviceStatus;
-  sortBy?: string;
-  sortDescending?: boolean;
-  pageNumber: number;
-  pageSize: number;
-}
-
-export interface PagedResponse<T> {
-  items: T[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
+  operatingSystem?: string;
+  osVersion?: string;
+  processor?: string;
+  ramGb?: number;
+  description?: string;
 }

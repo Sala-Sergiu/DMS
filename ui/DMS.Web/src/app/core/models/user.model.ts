@@ -1,11 +1,17 @@
-import { UserRole } from './user-role.enum';
+export interface UserAssignedDevice {
+  assignmentId: string;
+  deviceId: string;
+  deviceName: string;
+  brand: string;
+  model: string;
+  assignedAtUtc: string;
+}
 
 export interface User {
   id: string;
   fullName: string;
   email: string;
-  role: UserRole;
-  location: string | null;
-  isActive: boolean;
+  location?: string;
   createdAtUtc: string;
+  activeAssignments: UserAssignedDevice[];
 }

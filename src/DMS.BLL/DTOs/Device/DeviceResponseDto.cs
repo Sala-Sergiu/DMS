@@ -12,6 +12,11 @@ public class DeviceResponseDto
     public string Model { get; init; } = string.Empty;
     public DeviceType Type { get; init; }
     public DeviceStatus Status { get; init; }
+    public string? OperatingSystem { get; init; }
+    public string? OsVersion { get; init; }
+    public string? Processor { get; init; }
+    public int? RamGb { get; init; }
+    public string? Description { get; init; }
     public DateTime? PurchasedAtUtc { get; init; }
     public DateTime CreatedAtUtc { get; init; }
     public DateTime UpdatedAtUtc { get; init; }

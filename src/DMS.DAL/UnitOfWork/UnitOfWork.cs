@@ -9,14 +9,12 @@ public class UnitOfWork : IUnitOfWork
 
     public IDeviceRepository Devices { get; }
     public IUserRepository Users { get; }
-    public IInviteRepository Invites { get; }
 
-    public UnitOfWork(DmsDbContext context, IDeviceRepository devices, IUserRepository users, IInviteRepository invites)
+    public UnitOfWork(DmsDbContext context, IDeviceRepository devices, IUserRepository users)
     {
         _context = context;
         Devices = devices;
         Users = users;
-        Invites = invites;
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

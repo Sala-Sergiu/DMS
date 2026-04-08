@@ -1,10 +1,8 @@
 ﻿using DMS.BLL.DTOs.Auth;
 using DMS.BLL.DTOs.User;
 using DMS.BLL.Exceptions;
-using DMS.BLL.Mappers;
 using DMS.DAL.UnitOfWork;
 using DMS.Domain.Entities;
-using DMS.Domain.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -35,7 +33,7 @@ public class AuthService : IAuthService
 
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-        var user = new User(request.FullName, request.Email, passwordHash, UserRole.Employee, request.Location);
+        var user = new User(request.FullName, request.Email, passwordHash, request.Location);
 
         await _uow.Users.AddAsync(user, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
@@ -55,9 +53,6 @@ public class AuthService : IAuthService
 
         var user = await _uow.Users.GetByEmailAsync(request.Email, cancellationToken)
             ?? throw new UnauthorizedException("Invalid email or password.");
-
-        if (!user.IsActive)
-            throw new UnauthorizedException("Account is inactive.");
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new UnauthorizedException("Invalid email or password.");
@@ -80,7 +75,6 @@ public class AuthService : IAuthService
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("fullName", user.FullName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };

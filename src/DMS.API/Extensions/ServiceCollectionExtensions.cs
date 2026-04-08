@@ -1,5 +1,4 @@
-﻿using DMS.API.Constants;
-using DMS.BLL.AI;
+﻿using DMS.BLL.AI;
 using DMS.BLL.Services;
 using DMS.DAL.Persistence;
 using DMS.DAL.Repositories;
@@ -25,7 +24,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IDeviceRepository, DeviceRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IInviteRepository, InviteRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
@@ -36,7 +34,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IInviteService, InviteService>();
         services.AddScoped<IDeviceDescriptionService, DeviceDescriptionService>();
         services.AddScoped<IDeviceDescriptionGenerator, OpenAiDeviceDescriptionGenerator>();
         services.AddHttpClient<IDeviceDescriptionGenerator, OpenAiDeviceDescriptionGenerator>();
@@ -67,13 +64,7 @@ public static class ServiceCollectionExtensions
                 };
             });
 
-        services.AddAuthorizationBuilder()
-            .AddPolicy(AuthorizationPolicies.AdminOnly, policy =>
-                policy.RequireRole(nameof(DMS.Domain.Enums.UserRole.Admin)))
-            .AddPolicy(AuthorizationPolicies.ManagerOrAdmin, policy =>
-                policy.RequireRole(
-                    nameof(DMS.Domain.Enums.UserRole.Manager),
-                    nameof(DMS.Domain.Enums.UserRole.Admin)));
+        services.AddAuthorization();
 
         return services;
     }

@@ -4,21 +4,22 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
+import { MatListModule } from '@angular/material/list';
+import { RouterModule } from '@angular/router';
 import { UserService } from '../../../core/services/user.service';
 import { User } from '../../../core/models/user.model';
-import { UserRole } from '../../../core/models/user-role.enum';
 
 @Component({
   selector: 'app-user-profile',
   standalone: true,
   imports: [
     SlicePipe,
+    RouterModule,
     MatCardModule,
     MatIconModule,
     MatDividerModule,
     MatProgressSpinnerModule,
-    MatChipsModule
+    MatListModule
   ],
   template: `
     @if (loading()) {
@@ -42,28 +43,35 @@ import { UserRole } from '../../../core/models/user-role.enum';
                 <span class="value">{{ user()!.email }}</span>
               </div>
               <div class="info-item">
-                <span class="label">Role</span>
-                <span class="value">
-                  <mat-chip-set>
-                    <mat-chip [color]="getRoleColor(user()!.role)" highlighted>
-                      {{ getRoleLabel(user()!.role) }}
-                    </mat-chip>
-                  </mat-chip-set>
-                </span>
-              </div>
-              <div class="info-item">
                 <span class="label">Location</span>
                 <span class="value">{{ user()!.location ?? '—' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="label">Status</span>
-                <span class="value">{{ user()!.isActive ? 'Active' : 'Inactive' }}</span>
               </div>
               <div class="info-item">
                 <span class="label">Member Since</span>
                 <span class="value">{{ user()!.createdAtUtc | slice:0:10 }}</span>
               </div>
             </div>
+
+            <mat-divider />
+
+            <h3 class="section-title">Assigned Devices ({{ user()!.activeAssignments.length }})</h3>
+
+            @if (user()!.activeAssignments.length === 0) {
+              <p class="empty-state">No devices currently assigned to you.</p>
+            } @else {
+              <mat-list>
+                @for (assignment of user()!.activeAssignments; track assignment.assignmentId) {
+                  <mat-list-item>
+                    <mat-icon matListItemIcon>devices_other</mat-icon>
+                    <span matListItemTitle>{{ assignment.deviceName }}</span>
+                    <span matListItemLine>{{ assignment.brand }} {{ assignment.model }}</span>
+                    <span matListItemLine class="assigned-date">
+                      Assigned {{ assignment.assignedAtUtc | slice:0:10 }}
+                    </span>
+                  </mat-list-item>
+                }
+              </mat-list>
+            }
           </mat-card-content>
         </mat-card>
       </div>
@@ -78,8 +86,7 @@ import { UserRole } from '../../../core/models/user-role.enum';
       justify-content: center;
       padding: 24px 0 16px;
     }
-    .avatar-icon { font-size: 80px; width: 80px; height: 80px;
-      color: var(--mat-sys-primary); }
+    .avatar-icon { font-size: 80px; width: 80px; height: 80px; color: var(--mat-sys-primary); }
     .info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -89,6 +96,9 @@ import { UserRole } from '../../../core/models/user-role.enum';
     .info-item { display: flex; flex-direction: column; gap: 4px; }
     .label { font-size: 12px; color: var(--mat-sys-on-surface-variant); }
     .value { font-size: 15px; font-weight: 500; }
+    .section-title { margin: 20px 0 8px; font-size: 16px; font-weight: 500; }
+    .empty-state { color: var(--mat-sys-on-surface-variant); font-size: 14px; }
+    .assigned-date { font-size: 12px; color: var(--mat-sys-on-surface-variant); }
   `]
 })
 export class UserProfile implements OnInit {
@@ -106,13 +116,5 @@ export class UserProfile implements OnInit {
       },
       error: () => this.loading.set(false)
     });
-  }
-
-  getRoleLabel(role: UserRole): string {
-    return { [UserRole.Employee]: 'Employee', [UserRole.Manager]: 'Manager', [UserRole.Admin]: 'Admin' }[role] ?? '—';
-  }
-
-  getRoleColor(role: UserRole): string {
-    return { [UserRole.Admin]: 'warn', [UserRole.Manager]: 'accent', [UserRole.Employee]: 'primary' }[role] ?? 'primary';
   }
 }

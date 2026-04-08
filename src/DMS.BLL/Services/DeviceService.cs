@@ -1,5 +1,4 @@
-﻿using DMS.BLL.DTOs.Assignment;
-using DMS.BLL.DTOs.Device;
+﻿using DMS.BLL.DTOs.Device;
 using DMS.BLL.Exceptions;
 using DMS.BLL.Mappers;
 using DMS.DAL.Repositories;
@@ -71,6 +70,11 @@ public class DeviceService : IDeviceService
             request.Brand,
             request.Model,
             request.Type,
+            request.OperatingSystem,
+            request.OsVersion,
+            request.Processor,
+            request.RamGb,
+            request.Description,
             request.PurchasedAtUtc);
 
         await _uow.Devices.AddAsync(device, cancellationToken);
@@ -89,7 +93,10 @@ public class DeviceService : IDeviceService
         var device = await _uow.Devices.GetByIdAsync(id, cancellationToken)
             ?? throw NotFoundException.For<Device>(id);
 
-        device.UpdateDetails(request.Name, request.Brand, request.Model, request.Type);
+        device.UpdateDetails(
+            request.Name, request.Brand, request.Model, request.Type,
+            request.OperatingSystem, request.OsVersion, request.Processor,
+            request.RamGb, request.Description);
 
         _uow.Devices.Update(device);
         await _uow.SaveChangesAsync(cancellationToken);
@@ -109,19 +116,15 @@ public class DeviceService : IDeviceService
         await _uow.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<DeviceResponseDto> AssignAsync(
-        Guid deviceId,
-        AssignDeviceRequestDto request,
+    public async Task<DeviceResponseDto> AssignToSelfAsync(
+        Guid deviceId, Guid currentUserId, string? notes,
         CancellationToken cancellationToken = default)
     {
         var device = await _uow.Devices.GetWithAssignmentsAsync(deviceId, cancellationToken)
             ?? throw NotFoundException.For<Device>(deviceId);
 
-        var user = await _uow.Users.GetByIdAsync(request.UserId, cancellationToken)
-            ?? throw NotFoundException.For<User>(request.UserId);
-
-        if (!user.IsActive)
-            throw new ConflictException("Cannot assign a device to an inactive user.");
+        var user = await _uow.Users.GetByIdAsync(currentUserId, cancellationToken)
+            ?? throw NotFoundException.For<User>(currentUserId);
 
         if (device.IsAssigned)
             throw new ConflictException("Device is already assigned to another user.");
@@ -129,9 +132,7 @@ public class DeviceService : IDeviceService
         if (device.Status == DeviceStatus.Retired)
             throw new ConflictException("Cannot assign a retired device.");
 
-        var assignment = new DeviceAssignment(device, user, request.Notes);
-
-        // Transition device status explicitly — no side effects in domain constructor
+        var assignment = new DeviceAssignment(device, user, notes);
         device.MarkAsInUse();
 
         await _uow.Devices.AddAssignmentAsync(assignment, cancellationToken);
@@ -140,9 +141,8 @@ public class DeviceService : IDeviceService
         return DeviceMapper.ToResponseDto(device);
     }
 
-    public async Task<DeviceResponseDto> ReturnAsync(
-        Guid deviceId,
-        ReturnDeviceRequestDto request,
+    public async Task<DeviceResponseDto> UnassignFromSelfAsync(
+        Guid deviceId, Guid currentUserId,
         CancellationToken cancellationToken = default)
     {
         var device = await _uow.Devices.GetWithAssignmentsAsync(deviceId, cancellationToken)
@@ -151,9 +151,10 @@ public class DeviceService : IDeviceService
         if (!device.IsAssigned)
             throw new ConflictException("Device is not currently assigned.");
 
-        device.ActiveAssignment!.Return(request.Notes);
+        if (device.ActiveAssignment!.UserId != currentUserId)
+            throw new ConflictException("You can only unassign a device assigned to yourself.");
 
-        // Transition device status explicitly
+        device.ActiveAssignment.Return();
         device.MarkAsAvailable();
 
         await _uow.SaveChangesAsync(cancellationToken);
@@ -165,16 +166,12 @@ public class DeviceService : IDeviceService
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ValidationException("Device name is required.");
-
         if (string.IsNullOrWhiteSpace(request.SerialNumber))
             throw new ValidationException("Serial number is required.");
-
         if (string.IsNullOrWhiteSpace(request.AssetTag))
             throw new ValidationException("Asset tag is required.");
-
         if (string.IsNullOrWhiteSpace(request.Brand))
             throw new ValidationException("Brand is required.");
-
         if (string.IsNullOrWhiteSpace(request.Model))
             throw new ValidationException("Model is required.");
     }
@@ -183,10 +180,8 @@ public class DeviceService : IDeviceService
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             throw new ValidationException("Device name is required.");
-
         if (string.IsNullOrWhiteSpace(request.Brand))
             throw new ValidationException("Brand is required.");
-
         if (string.IsNullOrWhiteSpace(request.Model))
             throw new ValidationException("Model is required.");
     }

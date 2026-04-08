@@ -1,328 +1,137 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatSortModule, Sort } from '@angular/material/sort';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { MatDividerModule } from '@angular/material/divider';
 import { DeviceService } from '../../../core/services/device.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { Device } from '../../../core/models/device.model';
-import { DeviceType } from '../../../core/models/device-type.enum';
-import { DeviceStatus } from '../../../core/models/device-status.enum';
-import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { Device, DeviceStatus, DeviceType } from '../../../core/models/device.model';
 
 @Component({
   selector: 'app-device-list',
   standalone: true,
   imports: [
-    RouterLink,
-    ReactiveFormsModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSelectModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-    MatDialogModule,
-    MatSnackBarModule
+    CommonModule, RouterModule, FormsModule,
+    MatCardModule, MatButtonModule, MatIconModule,
+    MatInputModule, MatFormFieldModule,
+    MatProgressSpinnerModule, MatDividerModule
   ],
   template: `
-    <div class="page-header">
-      <h1>Devices</h1>
-      @if (isManagerOrAdmin()) {
-        <a mat-raised-button color="primary" routerLink="/devices/new">
+    <div class="page-container">
+      <div class="page-header">
+        <h1>Devices</h1>
+        <button mat-raised-button color="primary" (click)="openCreate()">
           <mat-icon>add</mat-icon> Add Device
-        </a>
-      }
-    </div>
+        </button>
+      </div>
 
-    <div class="filters">
       <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search</mat-label>
-        <input matInput [formControl]="searchControl" placeholder="Name, brand, model..." />
+        <mat-label>Search devices...</mat-label>
+        <input matInput [(ngModel)]="searchTerm" (ngModelChange)="onSearch()"
+               placeholder="Dell, MacBook, Samsung..." />
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Type</mat-label>
-        <mat-select [formControl]="typeControl">
-          <mat-option [value]="null">All Types</mat-option>
-          @for (type of deviceTypes; track type.value) {
-            <mat-option [value]="type.value">{{ type.label }}</mat-option>
+      @if (loading()) {
+        <div class="spinner-wrapper"><mat-spinner diameter="48" /></div>
+      } @else if (devices().length === 0) {
+        <p class="empty-state">No devices found.</p>
+      } @else {
+        <mat-card class="list-card">
+          @for (device of devices(); track device.id; let last = $last) {
+            <div class="device-row" (click)="goToDevice(device.id)">
+              <mat-icon class="device-icon">{{ getTypeIcon(device.type) }}</mat-icon>
+              <div class="device-info">
+                <div class="device-name">{{ device.name }}</div>
+                <div class="device-sub">{{ device.brand }} · {{ device.model }}</div>
+              </div>
+              <div class="device-meta">
+                <span class="status-badge status-{{ device.status }}">
+                  {{ getStatusLabel(device.status) }}
+                </span>
+                @if (device.activeAssignment) {
+                  <span class="assigned-to">
+                    <mat-icon class="inline-icon">person</mat-icon>
+                    {{ device.activeAssignment.userFullName }}
+                  </span>
+                }
+              </div>
+              <mat-icon class="chevron">chevron_right</mat-icon>
+            </div>
+            @if (!last) { <mat-divider /> }
           }
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Status</mat-label>
-        <mat-select [formControl]="statusControl">
-          <mat-option [value]="null">All Statuses</mat-option>
-          @for (status of deviceStatuses; track status.value) {
-            <mat-option [value]="status.value">{{ status.label }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+        </mat-card>
+      }
     </div>
-
-    @if (loading()) {
-      <div class="spinner-container">
-        <mat-spinner />
-      </div>
-    } @else {
-      <div class="table-container mat-elevation-z2">
-        <table mat-table [dataSource]="devices()" matSort (matSortChange)="onSort($event)">
-
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-            <td mat-cell *matCellDef="let d">{{ d.name }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="brand">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Brand</th>
-            <td mat-cell *matCellDef="let d">{{ d.brand }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="model">
-            <th mat-header-cell *matHeaderCellDef>Model</th>
-            <td mat-cell *matCellDef="let d">{{ d.model }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="type">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
-            <td mat-cell *matCellDef="let d">{{ getTypeLabel(d.type) }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-            <td mat-cell *matCellDef="let d">
-              <span [class]="'status-badge status-' + d.status">
-                {{ getStatusLabel(d.status) }}
-              </span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="assignedTo">
-            <th mat-header-cell *matHeaderCellDef>Assigned To</th>
-            <td mat-cell *matCellDef="let d">
-              {{ d.activeAssignment?.userFullName ?? '—' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef></th>
-            <td mat-cell *matCellDef="let d" (click)="$event.stopPropagation()">
-              <a mat-icon-button [routerLink]="['/devices', d.id]" matTooltip="View details">
-                <mat-icon>visibility</mat-icon>
-              </a>
-              @if (isManagerOrAdmin()) {
-                <a mat-icon-button [routerLink]="['/devices', d.id, 'edit']" matTooltip="Edit">
-                  <mat-icon>edit</mat-icon>
-                </a>
-              }
-              @if (isAdmin()) {
-                <button mat-icon-button color="warn" (click)="confirmDelete(d)" matTooltip="Delete">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              }
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-              class="table-row" [routerLink]="['/devices', row.id]"></tr>
-        </table>
-
-        <mat-paginator
-          [length]="totalCount()"
-          [pageSize]="pageSize"
-          [pageSizeOptions]="[10, 20, 50]"
-          (page)="onPage($event)"
-          showFirstLastButtons />
-      </div>
-    }
   `,
   styles: [`
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      h1 { margin: 0; }
+    .page-container { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .search-field { width: 100%; margin-bottom: 16px; }
+    .spinner-wrapper { display: flex; justify-content: center; padding: 64px; }
+    .empty-state { text-align: center; color: var(--mat-sys-on-surface-variant); padding: 48px; }
+    .list-card { padding: 0; overflow: hidden; }
+    .device-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 20px; cursor: pointer; transition: background 0.15s;
     }
-    .filters {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .search-field { flex: 1; min-width: 200px; }
-    .table-container { overflow-x: auto; }
-    table { width: 100%; }
-    .table-row { cursor: pointer; }
-    .table-row:hover { background: var(--mat-sys-surface-variant); }
-    .spinner-container { display: flex; justify-content: center; padding: 48px; }
-    .status-badge {
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .status-badge.status-1 { background: #e8f5e9; color: #2e7d32; }
-    .status-badge.status-2 { background: #e3f2fd; color: #1565c0; }
-    .status-badge.status-3 { background: #fff8e1; color: #f57f17; }
-    .status-badge.status-4 { background: #fce4ec; color: #c62828; }
+    .device-row:hover { background: var(--mat-sys-surface-variant); }
+    .device-icon { font-size: 28px; width: 28px; height: 28px; color: var(--mat-sys-primary); flex-shrink: 0; }
+    .device-info { flex: 1; min-width: 0; }
+    .device-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .device-sub { font-size: 13px; color: var(--mat-sys-on-surface-variant); }
+    .device-meta { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .status-badge { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 12px; white-space: nowrap; }
+    .status-1 { background: #e8f5e9; color: #2e7d32; }
+    .status-2 { background: #e3f2fd; color: #1565c0; }
+    .status-3 { background: #fff8e1; color: #f57f17; }
+    .status-4 { background: #fce4ec; color: #c62828; }
+    .assigned-to { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--mat-sys-on-surface-variant); white-space: nowrap; }
+    .inline-icon { font-size: 14px; width: 14px; height: 14px; }
+    .chevron { color: var(--mat-sys-on-surface-variant); flex-shrink: 0; }
+    @media (max-width: 600px) { .device-meta { display: none; } }
   `]
 })
 export class DeviceList implements OnInit {
   private deviceService = inject(DeviceService);
-  private authService = inject(AuthService);
-  private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
 
   devices = signal<Device[]>([]);
-  totalCount = signal(0);
-  loading = signal(false);
-
-  displayedColumns = ['name', 'brand', 'model', 'type', 'status', 'assignedTo', 'actions'];
-
-  searchControl = new FormControl('');
-  typeControl = new FormControl<DeviceType | null>(null);
-  statusControl = new FormControl<DeviceStatus | null>(null);
-
-  pageNumber = 1;
-  pageSize = 20;
-  sortBy = 'name';
-  sortDescending = false;
-
-  deviceTypes = [
-    { value: DeviceType.Laptop, label: 'Laptop' },
-    { value: DeviceType.Desktop, label: 'Desktop' },
-    { value: DeviceType.Tablet, label: 'Tablet' },
-    { value: DeviceType.Smartphone, label: 'Smartphone' },
-    { value: DeviceType.Monitor, label: 'Monitor' },
-    { value: DeviceType.Peripheral, label: 'Peripheral' },
-    { value: DeviceType.Other, label: 'Other' }
-  ];
-
-  deviceStatuses = [
-    { value: DeviceStatus.Available, label: 'Available' },
-    { value: DeviceStatus.InUse, label: 'In Use' },
-    { value: DeviceStatus.UnderMaintenance, label: 'Under Maintenance' },
-    { value: DeviceStatus.Retired, label: 'Retired' }
-  ];
+  loading = signal(true);
+  searchTerm = '';
+  private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.loadDevices();
-
-    this.searchControl.valueChanges.pipe(
-      debounceTime(400),
-      distinctUntilChanged()
-    ).subscribe(() => {
-      this.pageNumber = 1;
-      this.loadDevices();
-    });
-
-    this.typeControl.valueChanges.subscribe(() => {
-      this.pageNumber = 1;
-      this.loadDevices();
-    });
-
-    this.statusControl.valueChanges.subscribe(() => {
-      this.pageNumber = 1;
-      this.loadDevices();
-    });
   }
 
   loadDevices(): void {
     this.loading.set(true);
-    this.deviceService.getPaged({
-      searchTerm: this.searchControl.value ?? undefined,
-      type: this.typeControl.value ?? undefined,
-      status: this.statusControl.value ?? undefined,
-      sortBy: this.sortBy,
-      sortDescending: this.sortDescending,
-      pageNumber: this.pageNumber,
-      pageSize: this.pageSize
-    }).subscribe({
-      next: (response) => {
-        this.devices.set(response.body?.items ?? []);
-        const total = response.headers.get('X-Total-Count');
-        this.totalCount.set(total ? parseInt(total) : (response.body?.totalCount ?? 0));
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false)
+    this.deviceService.getAll({ searchTerm: this.searchTerm || undefined, pageSize: 50 }).subscribe({
+      next: (result) => { this.devices.set(result.items); this.loading.set(false); },
+      error: () => { this.loading.set(false); this.router.navigate(['/login']); }
     });
   }
 
-  confirmDelete(device: Device): void {
-    const dialogRef = this.dialog.open(ConfirmDialog, {
-      width: '380px',
-      data: {
-        title: 'Delete Device',
-        message: `Are you sure you want to delete "${device.name}"? This action cannot be undone.`
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(confirmed => {
-      if (confirmed) {
-        this.deleteDevice(device.id);
-      }
-    });
+  onSearch(): void {
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => this.loadDevices(), 400);
   }
 
-  private deleteDevice(id: string): void {
-    this.deviceService.delete(id).subscribe({
-      next: () => {
-        this.snackBar.open('Device deleted successfully.', 'Close', { duration: 3000 });
-        this.loadDevices();
-      },
-      error: (err) => {
-        const message = err.error?.message ?? 'Failed to delete device.';
-        this.snackBar.open(message, 'Close', { duration: 4000 });
-      }
-    });
-  }
+  openCreate(): void { this.router.navigate(['/devices/create']); }
+  goToDevice(id: string): void { this.router.navigate(['/devices', id]); }
 
-  onSort(sort: Sort): void {
-    this.sortBy = sort.active;
-    this.sortDescending = sort.direction === 'desc';
-    this.loadDevices();
-  }
-
-  onPage(event: PageEvent): void {
-    this.pageNumber = event.pageIndex + 1;
-    this.pageSize = event.pageSize;
-    this.loadDevices();
-  }
-
-  isManagerOrAdmin(): boolean {
-    const role = this.authService.getRole();
-    return role === 'Manager' || role === 'Admin';
-  }
-
-  isAdmin(): boolean {
-    return this.authService.getRole() === 'Admin';
-  }
-
-  getTypeLabel(type: DeviceType): string {
-    return this.deviceTypes.find(t => t.value === type)?.label ?? '—';
+  getTypeIcon(type: DeviceType): string {
+    return ({ 1: 'laptop', 2: 'desktop_windows', 3: 'tablet', 4: 'smartphone', 5: 'monitor', 6: 'cable', 99: 'devices_other' } as Record<number, string>)[type] ?? 'devices_other';
   }
 
   getStatusLabel(status: DeviceStatus): string {
-    return this.deviceStatuses.find(s => s.value === status)?.label ?? '—';
+    return ({ 1: 'Available', 2: 'In Use', 3: 'Maintenance', 4: 'Retired' } as Record<number, string>)[status] ?? 'Unknown';
   }
 }

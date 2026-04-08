@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _authService.RegisterAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(UsersController.GetById), "Users", new { id = result.Id }, result);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     [HttpPost("login")]
@@ -34,13 +34,4 @@ public class AuthController : ControllerBase
         var result = await _authService.LoginAsync(request, cancellationToken);
         return Ok(result);
     }
-
-    [HttpGet("dev/hash")]
-#if DEBUG
-    public IActionResult GetHash([FromQuery] string password)
-    {
-        var hash = BCrypt.Net.BCrypt.HashPassword(password, 11);
-        return Ok(new { hash });
-    }
-#endif
 }
