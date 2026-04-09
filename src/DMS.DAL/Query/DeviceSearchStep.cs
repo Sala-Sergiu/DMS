@@ -19,7 +19,7 @@ public sealed class DeviceSearchStep : IDeviceQueryStep
             return query;
 
         // Filtrare în SQL — un device trebuie să conțină cel puțin un token
-        // în Name sau Brand (Manufacturer în contextul task-ului)
+        // în Name sau Brand
         foreach (var token in tokens)
         {
             var t = token;

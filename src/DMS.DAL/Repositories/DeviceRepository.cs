@@ -28,6 +28,15 @@ public class DeviceRepository : Repository<Device>, IDeviceRepository
     public async Task AddAssignmentAsync(DeviceAssignment assignment, CancellationToken cancellationToken = default)
         => await Context.DeviceAssignments.AddAsync(assignment, cancellationToken);
 
+    public async Task DeleteAssignmentsAsync(Guid deviceId, CancellationToken cancellationToken = default)
+    {
+        var assignments = await Context.DeviceAssignments
+            .Where(a => a.DeviceId == deviceId)
+            .ToListAsync(cancellationToken);
+
+        Context.DeviceAssignments.RemoveRange(assignments);
+    }
+
     public async Task<(IReadOnlyList<Device> Items, int TotalCount)> GetPagedAsync(
         DeviceQueryParameters parameters,
         CancellationToken cancellationToken = default)
@@ -41,7 +50,6 @@ public class DeviceRepository : Repository<Device>, IDeviceRepository
             .Take(parameters.PageSize)
             .ToListAsync(cancellationToken);
 
-        // Dacă există un search term, aplicăm ranking în memorie după relevanță
         if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
         {
             var tokens = parameters.SearchTerm

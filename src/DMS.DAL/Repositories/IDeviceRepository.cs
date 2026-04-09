@@ -9,4 +9,5 @@ public interface IDeviceRepository : IRepository<Device>
     Task<bool> IsAssetTagTakenAsync(string assetTag, Guid? excludeDeviceId = null, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<Device> Items, int TotalCount)> GetPagedAsync(DeviceQueryParameters parameters, CancellationToken cancellationToken = default);
     Task AddAssignmentAsync(DeviceAssignment assignment, CancellationToken cancellationToken = default);
+    Task DeleteAssignmentsAsync(Guid deviceId, CancellationToken cancellationToken = default);
 }

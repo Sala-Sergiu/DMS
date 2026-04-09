@@ -18,7 +18,7 @@ Make sure you have the following installed:
 
 ## 1. Database Setup
 
-Open **SSMS** and run the following scripts in order:
+Open SSMS and run the following scripts in order:
 -- Step 1: Create tables database/01_create_tables.sql
 -- Step 2: Seed dummy data database/02_seed_data.sql
 

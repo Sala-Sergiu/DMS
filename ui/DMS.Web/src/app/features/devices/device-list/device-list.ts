@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { DeviceService } from '../../../core/services/device.service';
 import { Device, DeviceStatus, DeviceType } from '../../../core/models/device.model';
 
@@ -19,7 +20,8 @@ import { Device, DeviceStatus, DeviceType } from '../../../core/models/device.mo
     CommonModule, RouterModule, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatInputModule, MatFormFieldModule,
-    MatProgressSpinnerModule, MatDividerModule
+    MatProgressSpinnerModule, MatDividerModule,
+    MatPaginatorModule
   ],
   template: `
     <div class="page-container">
@@ -66,6 +68,15 @@ import { Device, DeviceStatus, DeviceType } from '../../../core/models/device.mo
             @if (!last) { <mat-divider /> }
           }
         </mat-card>
+
+        <mat-paginator
+          [length]="totalCount()"
+          [pageSize]="pageSize()"
+          [pageIndex]="pageIndex()"
+          [pageSizeOptions]="[5, 10, 20]"
+          (page)="onPageChange($event)"
+          showFirstLastButtons>
+        </mat-paginator>
       }
     </div>
   `,
@@ -95,6 +106,7 @@ import { Device, DeviceStatus, DeviceType } from '../../../core/models/device.mo
     .assigned-to { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--mat-sys-on-surface-variant); white-space: nowrap; }
     .inline-icon { font-size: 14px; width: 14px; height: 14px; }
     .chevron { color: var(--mat-sys-on-surface-variant); flex-shrink: 0; }
+    mat-paginator { margin-top: 8px; }
     @media (max-width: 600px) { .device-meta { display: none; } }
   `]
 })
@@ -104,6 +116,10 @@ export class DeviceList implements OnInit {
 
   devices = signal<Device[]>([]);
   loading = signal(true);
+  totalCount = signal(0);
+  pageIndex = signal(0);
+  pageSize = signal(10);
+
   searchTerm = '';
   private searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -113,15 +129,35 @@ export class DeviceList implements OnInit {
 
   loadDevices(): void {
     this.loading.set(true);
-    this.deviceService.getAll({ searchTerm: this.searchTerm || undefined, pageSize: 50 }).subscribe({
-      next: (result) => { this.devices.set(result.items); this.loading.set(false); },
-      error: () => { this.loading.set(false); this.router.navigate(['/login']); }
+    this.deviceService.getAll({
+      searchTerm: this.searchTerm || undefined,
+      pageNumber: this.pageIndex() + 1,
+      pageSize: this.pageSize()
+    }).subscribe({
+      next: (result) => {
+        this.devices.set(result.items);
+        this.totalCount.set(result.totalCount);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.router.navigate(['/login']);
+      }
     });
   }
 
   onSearch(): void {
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
-    this.searchTimeout = setTimeout(() => this.loadDevices(), 400);
+    this.searchTimeout = setTimeout(() => {
+      this.pageIndex.set(0);
+      this.loadDevices();
+    }, 400);
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    this.loadDevices();
   }
 
   openCreate(): void { this.router.navigate(['/devices/create']); }

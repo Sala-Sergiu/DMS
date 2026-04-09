@@ -81,11 +81,15 @@ public class DeviceEntityTests
     {
         var device = DeviceBuilder.CreateAvailable();
 
-        device.UpdateDetails("New Name", "HP", "ProBook", DeviceType.Laptop);
+        device.UpdateDetails("New Name", "HP", "ProBook", DeviceType.Laptop,
+            operatingSystem: "Windows", osVersion: "11 Pro",
+            processor: "Intel Core i5", ramGb: 16, description: null);
 
         device.Name.Should().Be("New Name");
         device.Brand.Should().Be("HP");
         device.Model.Should().Be("ProBook");
+        device.OperatingSystem.Should().Be("Windows");
+        device.RamGb.Should().Be(16);
     }
 
     [Fact]
@@ -93,7 +97,9 @@ public class DeviceEntityTests
     {
         var device = DeviceBuilder.CreateAvailable();
 
-        var act = () => device.UpdateDetails("", "HP", "ProBook", DeviceType.Laptop);
+        var act = () => device.UpdateDetails("", "HP", "ProBook", DeviceType.Laptop,
+            operatingSystem: null, osVersion: null,
+            processor: null, ramGb: null, description: null);
 
         act.Should().Throw<ArgumentException>();
     }

@@ -112,6 +112,9 @@ public class DeviceService : IDeviceService
         if (device.IsAssigned)
             throw new ConflictException("Cannot delete a device that is currently assigned.");
 
+        // Şterge assignment-urile istorice înainte de device
+        await _uow.Devices.DeleteAssignmentsAsync(id, cancellationToken);
+
         _uow.Devices.Delete(device);
         await _uow.SaveChangesAsync(cancellationToken);
     }
