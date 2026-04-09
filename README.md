@@ -47,7 +47,7 @@ If left empty, the Generate Description feature will return an error but all oth
 cd ui/DMS.Web npm install ng serve
 
 The Angular app will start at: http://localhost:4200
-The Angular dev server is configured to proxy `/api` requests to `https://localhost:7001` automatically.
+The Angular dev server is configured to proxy `/api` requests to `https://localhost:5000` automatically.
 
 ## Features
 
