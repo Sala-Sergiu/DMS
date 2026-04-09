@@ -15,6 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\DMS.BLL\DMS.BLL.csproj" />
+    <ProjectReference Include="..\..\src\DMS.DAL\DMS.DAL.csproj" />
+    <ProjectReference Include="..\..\src\DMS.Domain\DMS.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

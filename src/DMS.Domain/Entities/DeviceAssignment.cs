@@ -1,6 +1,4 @@
-﻿using DMS.Domain.Enums;
-
-namespace DMS.Domain.Entities;
+﻿namespace DMS.Domain.Entities;
 
 public class DeviceAssignment
 {
@@ -22,22 +20,13 @@ public class DeviceAssignment
     private DeviceAssignment() { }
 
     /// <summary>
-    /// Creates a new active assignment between a device and a user.
-    /// The device and user must both be valid and the device must not already be assigned.
+    /// Creates a new assignment record. Business rule validation happens
+    /// before calling this — in the service layer.
     /// </summary>
     public DeviceAssignment(Device device, User user, string? notes = null)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(user);
-
-        if (!user.IsActive)
-            throw new InvalidOperationException("Cannot assign a device to an inactive user.");
-
-        if (device.IsAssigned)
-            throw new InvalidOperationException("Device is already assigned to another user.");
-
-        if (device.Status == DeviceStatus.Retired)
-            throw new InvalidOperationException("Cannot assign a retired device.");
 
         Id = Guid.NewGuid();
         DeviceId = device.Id;
@@ -47,16 +36,11 @@ public class DeviceAssignment
         AssignedAtUtc = DateTime.UtcNow;
         Notes = notes;
 
-        // Register this assignment on both sides of the relationship
         device.AddAssignment(this);
-        user.AddAssignment(this);
-
-        device.MarkAsInUse();
     }
 
     /// <summary>
     /// Closes the active assignment by recording the return date.
-    /// The device is transitioned back to Available.
     /// </summary>
     public void Return(string? notes = null)
     {
@@ -67,7 +51,5 @@ public class DeviceAssignment
 
         if (notes is not null)
             Notes = notes;
-
-        Device.MarkAsAvailable();
     }
 }

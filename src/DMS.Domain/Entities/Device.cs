@@ -14,6 +14,11 @@ public class Device
     public string Model { get; private set; }
     public DeviceType Type { get; private set; }
     public DeviceStatus Status { get; private set; }
+    public string? OperatingSystem { get; private set; }
+    public string? OsVersion { get; private set; }
+    public string? Processor { get; private set; }
+    public int? RamGb { get; private set; }
+    public string? Description { get; private set; }
     public DateTime? PurchasedAtUtc { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
@@ -37,6 +42,11 @@ public class Device
         string brand,
         string model,
         DeviceType type,
+        string? operatingSystem = null,
+        string? osVersion = null,
+        string? processor = null,
+        int? ramGb = null,
+        string? description = null,
         DateTime? purchasedAtUtc = null)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -61,6 +71,11 @@ public class Device
         Brand = brand;
         Model = model;
         Type = type;
+        OperatingSystem = operatingSystem;
+        OsVersion = osVersion;
+        Processor = processor;
+        RamGb = ramGb;
+        Description = description;
         Status = DeviceStatus.Available;
         PurchasedAtUtc = purchasedAtUtc;
         CreatedAtUtc = DateTime.UtcNow;
@@ -102,7 +117,10 @@ public class Device
         UpdatedAtUtc = DateTime.UtcNow;
     }
 
-    public void UpdateDetails(string name, string brand, string model, DeviceType type)
+    public void UpdateDetails(
+        string name, string brand, string model, DeviceType type,
+        string? operatingSystem, string? osVersion, string? processor,
+        int? ramGb, string? description)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Device name is required.", nameof(name));
@@ -111,6 +129,17 @@ public class Device
         Brand = brand;
         Model = model;
         Type = type;
+        OperatingSystem = operatingSystem;
+        OsVersion = osVersion;
+        Processor = processor;
+        RamGb = ramGb;
+        Description = description;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    public void SetDescription(string? description)
+    {
+        Description = description;
         UpdatedAtUtc = DateTime.UtcNow;
     }
 

@@ -7,12 +7,11 @@ public class User
     private readonly List<DeviceAssignment> _assignments = new();
 
     public Guid Id { get; private set; }
-    public string FullName { get; private set; }
-    public string Email { get; private set; }
-    public string PasswordHash { get; private set; }
+    public string FullName { get; private set; } = string.Empty;
+    public string Email { get; private set; } = string.Empty;
+    public string PasswordHash { get; private set; } = string.Empty;
     public UserRole Role { get; private set; }
     public string? Location { get; private set; }
-    public bool IsActive { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
 
@@ -22,7 +21,7 @@ public class User
     // Required by EF Core — not for direct use in application code
     private User() { }
 
-    public User(string fullName, string email, string passwordHash, UserRole role, string? location = null)
+    public User(string fullName, string email, string passwordHash, string? location = null)
     {
         if (string.IsNullOrWhiteSpace(fullName))
             throw new ArgumentException("Full name is required.", nameof(fullName));
@@ -37,26 +36,9 @@ public class User
         FullName = fullName;
         Email = email.ToLowerInvariant();
         PasswordHash = passwordHash;
-        Role = role;
+        Role = UserRole.Employee;
         Location = location;
-        IsActive = true;
         CreatedAtUtc = DateTime.UtcNow;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
-
-    public void Activate()
-    {
-        if (IsActive) return;
-
-        IsActive = true;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
-
-    public void Deactivate()
-    {
-        if (!IsActive) return;
-
-        IsActive = false;
         UpdatedAtUtc = DateTime.UtcNow;
     }
 
@@ -67,12 +49,6 @@ public class User
 
         FullName = fullName;
         Location = location;
-        UpdatedAtUtc = DateTime.UtcNow;
-    }
-
-    public void ChangeRole(UserRole role)
-    {
-        Role = role;
         UpdatedAtUtc = DateTime.UtcNow;
     }
 
