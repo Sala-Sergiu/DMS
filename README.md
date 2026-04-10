@@ -4,6 +4,14 @@ A full-stack enterprise-style application for managing company-owned devices, tr
 
 Stack: ASP.NET Core Web API (.NET 8) · Entity Framework Core · MS SQL Server · Angular 17 · JWT Authentication · OpenAI
 
+Architecture
+The backend follows a layered architecture:
+
+- API — Controllers, middleware, request handling
+- BLL — Business logic and application services
+- DAL — Data access using Entity Framework Core
+- Domain — Core entities and business models
+
 ## Prerequisites
 
 Make sure you have the following installed:
@@ -33,8 +41,8 @@ src/DMS.API/appsettings.json → ConnectionStrings.DefaultConnection
 
 ## 2. Backend Setup
 
-The API will start at: **https://localhost:50010
-Swagger UI is available at: **https://localhost:5000/swagger
+The API will start at: **https://localhost:5000**
+Swagger UI is available at: **https://localhost:5000/swagger**
 ### OpenAI API Key (required for AI description generation)
 Add your key in `src/DMS.API/appsettings.json`:
 "OpenAi": { "ApiKey": "your-openai-api-key-here", "Model": "gpt-4o-mini" }
